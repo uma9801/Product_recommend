@@ -12,6 +12,8 @@ import utils
 from initialize import initialize
 import components as cn
 import constants as ct
+# javascript有効化のためのライブラリ
+import streamlit.components.v1 as components
 
 
 ############################################################
@@ -111,3 +113,19 @@ if chat_message:
     # ==========================================
     st.session_state.messages.append({"role": "user", "content": chat_message})
     st.session_state.messages.append({"role": "assistant", "content": result})
+
+    # 回答生成時に画面を最下部までスクロール
+    components.html(
+    """
+    <div id="scroll_position"></div>
+    <script>
+        setTimeout(function() {
+            var target = document.getElementById("scroll_position");
+            if (target) {
+                target.scrollIntoView({behavior: "smooth", block: "start"});
+            } 
+        }, 400);
+    </script>
+    """,
+    height=0,
+    )
