@@ -14,7 +14,8 @@ import components as cn
 import constants as ct
 # javascript有効化のためのライブラリ
 import streamlit.components.v1 as components
-
+# スクロールナビゲーション用ライブラリ
+#from streamlit_scroll_navigation import scroll_navbar
 
 ############################################################
 # 設定関連
@@ -50,6 +51,18 @@ if not "initialized" in st.session_state:
 # タイトル表示
 cn.display_app_title()
 
+# # scroll_navigation設定
+# anchor_ids = ["Top", "answer", "bottom"]
+# anchor_icons = ["arrow-bar-up", "chat-text", "arrow-bar-down"]
+
+# # horizontal menu
+# scroll_navbar(
+#     anchor_ids,
+#     anchor_icons=anchor_icons,
+#     orientation="horizontal"
+# )
+# st.subheader(anchor_ids[0], anchor=anchor_ids[0])
+
 # AIメッセージの初期表示
 cn.display_initial_ai_message()
 
@@ -80,6 +93,9 @@ if chat_message:
     # ==========================================
     logger.info({"message": chat_message})
 
+    # # スクロール用アンカーの設置
+    # st.subheader(anchor_ids[1], anchor=anchor_ids[1])
+
     with st.chat_message("user", avatar=ct.USER_ICON_FILE_PATH):
         st.markdown(chat_message)
 
@@ -107,6 +123,9 @@ if chat_message:
             logger.error(f"{ct.LLM_RESPONSE_DISP_ERROR_MESSAGE}\n{e}")
             st.error(utils.build_error_message(ct.LLM_RESPONSE_DISP_ERROR_MESSAGE))
             st.stop()
+
+    # # スクロールアンカーの設置：最下部
+    # st.subheader(anchor_ids[2], anchor=anchor_ids[2])
 
     # ==========================================
     # 4. 会話ログへの追加
