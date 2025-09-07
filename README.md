@@ -1,8 +1,46 @@
 現時点の課題
-品切れの商品でもレコメンドされる
+streamlit（LLMやRAG？）とJavaScript及びスクロールの相性問題
+
+2025/9/7
+改善内容：品切れの商品でもレコメンドされる
+LLMに在庫のある商品のIDを関連度順に答えさせる。
+回答をもとにRetriever結果を並び替えて、1番目の商品についてレコメンドする。
 
 2025/9/3
-スクロールナビゲーションライブラリを見つけたので試す
+ライブラリ：Streamlit-scroll-navigation の導入を試すが失敗（エラーログから抜粋：商品レコメンドに失敗しました。no such table: collections）
+    以下をmain.pyに記述するのはエラーなし
+    from streamlit_scroll_navigation import scroll_navbar
+    # Anchor IDs and icons
+    anchor_ids = ["About", "Features", "Settings", "Pricing", "Contact"]
+    anchor_icons = ["info-circle", "lightbulb", "gear", "tag", "envelope"]
+        続いて以下を記述すると商品レコメンド失敗のエラーが発生が出るようになる。以降の再読み込みでも初期化エラーが出る
+        （サイドバーやタイトル直下だと1回目の回答生成からエラー。LLMからの回答後（最下部）に設置だと1回目は正常動作するが2回目からエラーとなる）
+        関数 cn.display_product(result) に入れ込むも最下部設置時と同じ動作になる。
+
+        # 2. horizontal menu
+        st.subheader("Example 2")
+        scroll_navbar(
+                anchor_ids,
+                key = "navbar2",
+                anchor_icons=anchor_icons,
+                orientation="horizontal")
+
+            以下、Copilotの見解
+            なぜ「horizontal menu」の追加でこのエラーが出るのか？
+                1. scroll_navbar自体はデータベースに影響しない
+                scroll_navbarやサブヘッダーの追加は、本来データベースには直接関係ありません。
+                しかし、ページ構成や初期化処理の順序が変わることで、
+                Streamlitの再実行タイミングやセッション状態の初期化タイミングに影響が出る場合があります。
+
+                2. 初期化処理とデータベースの状態
+                initialize()内でChroma.from_documents()を呼び出していますが、
+                ここで内部的にChroma（ベクトルDB）がcollectionsテーブルを参照しようとします。
+                通常はChroma.from_documents()がテーブルを自動生成しますが、
+                何らかの理由でテーブルが作成されていない、または破損している場合、このエラーが発生します。
+                3. ページ構成の変更による副作用
+                Streamlitはコードの構成やウィジェットの追加・順序変更によって、
+                セッション状態や初期化処理のタイミングが変わることがあります。
+                その結果、初期化処理が正しく走らず、DBのテーブルが未作成のままアクセスしようとしてエラーになることがあります。
 
 2025/9/2
 解決:2回目以降の質問はスクロールされなくなり読みづらい

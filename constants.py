@@ -50,3 +50,16 @@ INITIALIZE_ERROR_MESSAGE = "初期化処理に失敗しました。"
 CONVERSATION_LOG_ERROR_MESSAGE = "過去の会話履歴の表示に失敗しました。"
 RECOMMEND_ERROR_MESSAGE = "商品レコメンドに失敗しました。"
 LLM_RESPONSE_DISP_ERROR_MESSAGE = "商品情報の表示に失敗しました。"
+
+# ==========================================
+# LLM関連設定系
+# ==========================================
+MODEL = "gpt-4o-mini"
+TEMPERATURE = 0
+# IN_STOCK_PROMPT = 
+RANK_IN_STOCK_PRODUCTS_PROMPT = (
+    "{context}\n\n"
+    "ユーザーの要望: {user_input}\n"
+    "上記の商品情報のうち、'stock_status'が「あり」または「残りわずか」の商品の中から、"
+    "ユーザーの要望に関連性が高い順にIDをカンマ区切りで並べて答えてください。"
+)

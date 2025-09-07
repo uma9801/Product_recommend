@@ -53,16 +53,18 @@ def display_product(result):
     商品情報の表示
 
     Args:
-        result: LLMからの回答
+        result: LLMからの回答（Documentオブジェクト）
     """
     logger = logging.getLogger(ct.LOGGER_NAME)
 
-    # LLMレスポンスのテキストを辞書に変換
-    # MAX検索件数は5件だが、result[0]で1件のみを表示
+    # resultのテキストを辞書に変換（Documentオブジェクトのpage_contentの中身は単なる文字列(str型)なので、辞書に変換する必要がある）
+    # result[0]で1件のみを表示
     product_lines = result[0].page_content.split("\n")
+    logger.info({"辞書化のために\nで分割": product_lines})
 
     product = {item.split(": ")[0]: item.split(": ")[1] for item in product_lines}
-
+    logger.info({"辞書に変換": product})
+    # 商品情報の表示
     st.markdown("以下の商品をご提案いたします。")
 
     # 「商品名」と「価格」
@@ -96,3 +98,42 @@ def display_product(result):
 
     # 商品ページのリンク
     st.link_button("商品ページを開く", type="primary", use_container_width=True, url="https://google.com")
+
+def rank_in_stock_products_by_relevance(result, user_input):
+    """
+    在庫ありの商品を抽出し、ユーザー入力との関連度順にresult内を並び替える
+
+    Args:
+        result: Retrieverの結果（Documentオブジェクトリスト）
+        user_input: ユーザーの入力内容（str）
+    """
+    # 各商品情報は右記の情報でくくられている：'id': '', 'name': '', 'category': '', 'price': '', 'maker': '', 'recommended_people': '', 'review_number': '', 'score': '', 'file_name': '', 'description': '', 'stock_status': ''
+    # 'stock_status': ''が'なし'の商品を除外するプロンプトをLLMに与え、在庫あり商品のみを抽出するように指示する。
+    # Retriverの結果として引数のresultを受け取り、それをcontextとしてLLMに与える。
+
+    logger = logging.getLogger(ct.LOGGER_NAME)
+
+    llm = st.session_state.llm
+    context = "\n\n".join([r.page_content for r in result])
+    prompt = ct.RANK_IN_STOCK_PRODUCTS_PROMPT.format(context=context, user_input=user_input)
+
+    # LLMにプロンプトを投げる
+    response = llm(prompt) # 例: "5,13,22"
+    logger.info({"在庫あり商品を関連度順に並び替えたLLMの回答": response})
+
+    # response内のcontentに格納されているIDリストを抽出
+    in_stock_ids = [id_.strip() for id_ in response.content.split(",")]
+    logger.info({"LLMの回答からIDリストのみを抽出": in_stock_ids})
+
+    # Documentオブジェクトの形を保ったまま、resultの中身をin_stock_idsのID順に並び替える
+    result_sorted = []
+    for id_ in in_stock_ids:
+        for r in result:
+            product_lines = r.page_content.split("\n")
+            product_dict = {item.split(": ")[0]: item.split(": ")[1] for item in product_lines if ": " in item}
+            product_id = product_dict.get("id")
+            if product_id == id_:
+                result_sorted.append(r)
+                break
+    logger.info({"IDリストをもとにRetrieverの結果を編集": result_sorted})
+    return result_sorted

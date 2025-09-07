@@ -14,8 +14,7 @@ import components as cn
 import constants as ct
 # javascript有効化のためのライブラリ
 import streamlit.components.v1 as components
-# スクロールナビゲーション用ライブラリ
-#from streamlit_scroll_navigation import scroll_navbar
+
 
 ############################################################
 # 設定関連
@@ -51,21 +50,8 @@ if not "initialized" in st.session_state:
 # タイトル表示
 cn.display_app_title()
 
-# # scroll_navigation設定
-# anchor_ids = ["Top", "answer", "bottom"]
-# anchor_icons = ["arrow-bar-up", "chat-text", "arrow-bar-down"]
-
-# # horizontal menu
-# scroll_navbar(
-#     anchor_ids,
-#     anchor_icons=anchor_icons,
-#     orientation="horizontal"
-# )
-# st.subheader(anchor_ids[0], anchor=anchor_ids[0])
-
 # AIメッセージの初期表示
 cn.display_initial_ai_message()
-
 
 ############################################################
 # 会話ログの表示
@@ -93,9 +79,6 @@ if chat_message:
     # ==========================================
     logger.info({"message": chat_message})
 
-    # # スクロール用アンカーの設置
-    # st.subheader(anchor_ids[1], anchor=anchor_ids[1])
-
     with st.chat_message("user", avatar=ct.USER_ICON_FILE_PATH):
         st.markdown(chat_message)
 
@@ -106,6 +89,11 @@ if chat_message:
     with st.spinner(ct.SPINNER_TEXT):
         try:
             result = st.session_state.retriever.invoke(chat_message)
+            logger.info({"Retrieverの結果": result})
+
+            # LLMによって在庫ありの商品を抽出し関連度順に並べ替える
+            result = cn.rank_in_stock_products_by_relevance(result, chat_message)
+
         except Exception as e:
             logger.error(f"{ct.RECOMMEND_ERROR_MESSAGE}\n{e}")
             st.error(utils.build_error_message(ct.RECOMMEND_ERROR_MESSAGE))
@@ -118,14 +106,12 @@ if chat_message:
         try:
             cn.display_product(result)
             
-            logger.info({"message": result})
+            logger.info({"会話ログへ追加される内容": result})
         except Exception as e:
             logger.error(f"{ct.LLM_RESPONSE_DISP_ERROR_MESSAGE}\n{e}")
             st.error(utils.build_error_message(ct.LLM_RESPONSE_DISP_ERROR_MESSAGE))
             st.stop()
 
-    # # スクロールアンカーの設置：最下部
-    # st.subheader(anchor_ids[2], anchor=anchor_ids[2])
 
     # ==========================================
     # 4. 会話ログへの追加

@@ -21,6 +21,8 @@ from langchain.retrievers import EnsembleRetriever
 import utils
 import constants as ct
 
+from langchain_openai import ChatOpenAI
+
 
 ############################################################
 # 設定関連
@@ -125,6 +127,7 @@ def initialize_retriever():
     )
 
     st.session_state.retriever = ensemble_retriever
+    st.session_state.llm = ChatOpenAI(model_name=ct.MODEL, temperature=ct.TEMPERATURE)
 
 
 def adjust_string(s):
