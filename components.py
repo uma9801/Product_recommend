@@ -48,22 +48,18 @@ def display_conversation_log():
                 display_product(message["content"])
 
 
-def display_product(result):
+def display_product(product):
     """
     商品情報の表示
 
     Args:
-        result: LLMからの回答（Documentオブジェクト）
+        product: 商品情報の辞書
     """
     logger = logging.getLogger(ct.LOGGER_NAME)
 
-    # resultのテキストを辞書に変換（Documentオブジェクトのpage_contentの中身は単なる文字列(str型)なので、辞書に変換する必要がある）
-    # result[0]で1件のみを表示
-    product_lines = result[0].page_content.split("\n")
-    logger.info({"辞書化のために\nで分割": product_lines})
+    # 一番関連度の高い商品1件のみを表示
+    product = product[0]
 
-    product = {item.split(": ")[0]: item.split(": ")[1] for item in product_lines}
-    logger.info({"辞書に変換": product})
     # 商品情報の表示
     st.markdown("以下の商品をご提案いたします。")
 
@@ -101,23 +97,22 @@ def display_product(result):
 
 def rank_in_stock_products_by_relevance(result, user_input):
     """
-    在庫ありの商品を抽出し、ユーザー入力との関連度順にresult内を並び替える
+    在庫ありの商品を抽出し、ユーザー入力との関連度順に商品情報の辞書リストとして返す
 
     Args:
         result: Retrieverの結果（Documentオブジェクトリスト）
         user_input: ユーザーの入力内容（str）
     """
-    # 各商品情報は右記の情報でくくられている：'id': '', 'name': '', 'category': '', 'price': '', 'maker': '', 'recommended_people': '', 'review_number': '', 'score': '', 'file_name': '', 'description': '', 'stock_status': ''
-    # 'stock_status': ''が'なし'の商品を除外するプロンプトをLLMに与え、在庫あり商品のみを抽出するように指示する。
-    # Retriverの結果として引数のresultを受け取り、それをcontextとしてLLMに与える。
-
     logger = logging.getLogger(ct.LOGGER_NAME)
 
+    # initialize.pyで作成したLLMオブジェクトを取得
     llm = st.session_state.llm
+
+    # 各商品情報は右記のキーが含まれる：'id': '', 'name': '', 'category': '', 'price': '', 'maker': '', 'recommended_people': '', 'review_number': '', 'score': '', 'file_name': '', 'description': '', 'stock_status': ''
+    # 'stock_status': ''が'なし'の商品を除外するプロンプトをLLMに与え、在庫あり商品のみを抽出するように指示する。
+    # resultを整形し、contextとしてLLMに与える。
     context = "\n\n".join([r.page_content for r in result])
     prompt = ct.RANK_IN_STOCK_PRODUCTS_PROMPT.format(context=context, user_input=user_input)
-
-    # LLMにプロンプトを投げる
     response = llm(prompt) # 例: "5,13,22"
     logger.info({"在庫あり商品を関連度順に並び替えたLLMの回答": response})
 
@@ -125,15 +120,19 @@ def rank_in_stock_products_by_relevance(result, user_input):
     in_stock_ids = [id_.strip() for id_ in response.content.split(",")]
     logger.info({"LLMの回答からIDリストのみを抽出": in_stock_ids})
 
-    # Documentオブジェクトの形を保ったまま、resultの中身をin_stock_idsのID順に並び替える
+    # 注意：商品総数が増え、Retrieverの検索数も増える場合は処理が重くなる可能性あり
+    # IDリストをもとにresultを取捨選択・並び替えて、辞書化
     result_sorted = []
     for id_ in in_stock_ids:
         for r in result:
+            # resultのテキストを辞書に変換（Documentオブジェクトのpage_contentの中身は単なる文字列(str型)なので、ID判定のために辞書に変換する必要がある）
+            # 辞書化のためにsplit("\n")で行ごとに分割
             product_lines = r.page_content.split("\n")
-            product_dict = {item.split(": ")[0]: item.split(": ")[1] for item in product_lines if ": " in item}
-            product_id = product_dict.get("id")
-            if product_id == id_:
-                result_sorted.append(r)
+            # 行ごとに分割したリストを辞書に変換
+            product_dict = {item.split(": ")[0]: item.split(": ")[1] for item in product_lines}
+            if product_dict.get("id") == id_:
+                result_sorted.append(product_dict)
                 break
-    logger.info({"IDリストをもとにRetrieverの結果を編集": result_sorted})
+    logger.info({"IDリストをもとにRetrieverの結果を取捨選択し辞書化": result_sorted})
+    
     return result_sorted

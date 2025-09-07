@@ -77,7 +77,7 @@ if chat_message:
     # ==========================================
     # 1. ユーザーメッセージの表示
     # ==========================================
-    logger.info({"message": chat_message})
+    logger.info({"ユーザー入力": chat_message})
 
     with st.chat_message("user", avatar=ct.USER_ICON_FILE_PATH):
         st.markdown(chat_message)
@@ -92,7 +92,7 @@ if chat_message:
             logger.info({"Retrieverの結果": result})
 
             # LLMによって在庫ありの商品を抽出し関連度順に並べ替える
-            result = cn.rank_in_stock_products_by_relevance(result, chat_message)
+            result_sorted = cn.rank_in_stock_products_by_relevance(result, chat_message)
 
         except Exception as e:
             logger.error(f"{ct.RECOMMEND_ERROR_MESSAGE}\n{e}")
@@ -104,9 +104,9 @@ if chat_message:
     # ==========================================
     with st.chat_message("assistant", avatar=ct.AI_ICON_FILE_PATH):
         try:
-            cn.display_product(result)
+            cn.display_product(result_sorted)
             
-            logger.info({"会話ログへ追加される内容": result})
+            logger.info({"会話ログへ追加される内容": result_sorted})
         except Exception as e:
             logger.error(f"{ct.LLM_RESPONSE_DISP_ERROR_MESSAGE}\n{e}")
             st.error(utils.build_error_message(ct.LLM_RESPONSE_DISP_ERROR_MESSAGE))
@@ -117,9 +117,12 @@ if chat_message:
     # 4. 会話ログへの追加
     # ==========================================
     st.session_state.messages.append({"role": "user", "content": chat_message})
-    st.session_state.messages.append({"role": "assistant", "content": result})
+    st.session_state.messages.append({"role": "assistant", "content": result_sorted})
 
-    # 回答生成時に画面を最下部までスクロール
+
+    # ==========================================
+    # 5. 回答生成時に画面を最下部までスクロール
+    # ==========================================
     components.html(
     """
     <div id="scroll_position"></div>
@@ -129,7 +132,7 @@ if chat_message:
             if (target) {
                 target.scrollIntoView({behavior: "smooth", block: "start"});
             } 
-        }, 400);
+        }, 300);
     </script>
     """,
     height=0,

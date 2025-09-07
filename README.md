@@ -1,11 +1,12 @@
-現時点の課題
+未解決課題
 streamlit（LLMやRAG？）とJavaScript及びスクロールの相性問題
 
 2025/9/7
 改善内容：品切れの商品でもレコメンドされる
 LLMに在庫のある商品のIDを関連度順に答えさせる。
 回答をもとにRetriever結果を並び替えて、1番目の商品についてレコメンドする。
-
+    rank_in_stock_products_by_relevance関数で在庫有無・関連度順ソート・LLM回答の辞書化までを行い、display_product関数のLLM回答を辞書化する部分を削除
+    
 2025/9/3
 ライブラリ：Streamlit-scroll-navigation の導入を試すが失敗（エラーログから抜粋：商品レコメンドに失敗しました。no such table: collections）
     以下をmain.pyに記述するのはエラーなし
